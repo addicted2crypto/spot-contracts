@@ -1,14 +1,3 @@
-/**
- *Submitted for verification at snowtrace.io on 2022-10-26
-*/
-
-// File: contracts/Gravedigger.sol
-
-
-// OpenZeppelin Contracts v4.4.1 (utils/introspection/IERC165.sol)
-
-//GRAVEDIGGER BROUGHT TO YOU BY THE SPOT! Thespot.art is the spot on avax.
-//Engrave and utilize your NFTombstones at gravedigger.app
 
 pragma solidity 0.8.11;
 
@@ -634,7 +623,7 @@ abstract contract ERC721URIStorage is ERC721 {
     }
 }
 
-contract Scribbles is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable {
+contract ScribbleCustoms is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable {
   using Strings for uint256;
   using Counters for Counters.Counter;
 
@@ -653,19 +642,28 @@ contract Scribbles is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownabl
   mapping(uint => uint8) public hasBeenClaimed3;
   mapping(uint => uint8) public hasBeenClaimed4;
   mapping(uint => uint8) public hasBeenClaimed5;
+  mapping(uint => uint8) public hasBeenClaimed6;
+  mapping(uint => uint8) public hasBeenClaimed7;
+  mapping(uint => uint8) public hasBeenClaimed8;
 
   address public adminWallet = 0x32bD2811Fb91BC46756232A0B8c6b2902D7d8763;  //For funds if any
-  address private nftContract1Address = 0xe3525413c2a15daec57C92234361934f510356b8; //PNS
-  address private nftContract2Address = 0xe3525413c2a15daec57C92234361934f510356b8; //Abstract
-  address private nftContract3Address = 0xe3525413c2a15daec57C92234361934f510356b8; //Unfinished
-  address private nftContract4Address = 0xe3525413c2a15daec57C92234361934f510356b8; //Wasteland
-  address private nftContract5Address = 0xe3525413c2a15daec57C92234361934f510356b8; //Resonate
+  address private nftContract1Address = 0xd8b934580fcE35a11B58C6D73aDeE468a2833fa8; //PNS
+  address private nftContract2Address = 0xd9145CCE52D386f254917e481eB44e9943F39138; //Abstract
+  address private nftContract3Address = 0xd9145CCE52D386f254917e481eB44e9943F39138; //Unfinished
+  address private nftContract4Address = 0xd9145CCE52D386f254917e481eB44e9943F39138; //Wasteland
+  address private nftContract5Address = 0xd9145CCE52D386f254917e481eB44e9943F39138; //Resonate
+  address private nftContract6Address = 0xd9145CCE52D386f254917e481eB44e9943F39138; //Overload
+  address private nftContract7Address = 0xd9145CCE52D386f254917e481eB44e9943F39138; //Mind Matters
+  address private nftContract8Address = 0xd9145CCE52D386f254917e481eB44e9943F39138; //Tales
   
   	IERC721 contract1 = IERC721(nftContract1Address);
     IERC721 contract2 = IERC721(nftContract2Address);
     IERC721 contract3 = IERC721(nftContract3Address);
     IERC721 contract4 = IERC721(nftContract4Address);
     IERC721 contract5 = IERC721(nftContract5Address);
+    IERC721 contract6 = IERC721(nftContract6Address);
+    IERC721 contract7 = IERC721(nftContract7Address);
+    IERC721 contract8 = IERC721(nftContract8Address);
 
   constructor() ERC721("Scribble Customs", "SCRIB") {
        _totalSupply = 250;
@@ -686,38 +684,65 @@ contract Scribbles is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownabl
   function addHasBeenClaimed5(uint _id) private {
     hasBeenClaimed5[_id] = 1;
     }
+  function addHasBeenClaimed6(uint _id) private {
+    hasBeenClaimed6[_id] = 1;
+    }
+  function addHasBeenClaimed7(uint _id) private {
+    hasBeenClaimed7[_id] = 1;
+    }
+  function addHasBeenClaimed8(uint _id) private {
+    hasBeenClaimed8[_id] = 1;
+    }
   
   function mint(uint256 _tokenID, string memory uri, address _contractAddress) public payable nonReentrant {
 		require(!paused, "Minting is paused");
 		if (_contractAddress == nftContract1Address) {
             require(msg.sender == contract1.ownerOf(_tokenID), "You don't own this PNS Piece!");
-            require(hasBeenClaimed1[_tokenID] == 0, "Custom has already been Claimed");
+            require(hasBeenClaimed1[_tokenID] == 0, "Custom has already been Claimed for this PNS piece");
 			require(msg.value >= claimCost, "Insufficient funds");
             addHasBeenClaimed1(_tokenID);
 		}
         if (_contractAddress == nftContract2Address) {
             require(msg.sender == contract2.ownerOf(_tokenID), "You don't own this Abstract Piece!");
-            require(hasBeenClaimed2[_tokenID] == 0, "Custom has already been Claimed");
+            require(hasBeenClaimed2[_tokenID] == 0, "Custom has already been Claimed for this Abstract Piece");
 			require(msg.value >= claimCost, "Insufficient funds");
             addHasBeenClaimed2(_tokenID);
 		}
         if (_contractAddress == nftContract3Address) {
             require(msg.sender == contract3.ownerOf(_tokenID), "You don't own this Unfinished Piece!");
-            require(hasBeenClaimed3[_tokenID] == 0, "Custom has already been Claimed");
+            require(hasBeenClaimed3[_tokenID] == 0, "Custom has already been Claimed for this Unfinished Piece");
 			require(msg.value >= claimCost, "Insufficient funds");
             addHasBeenClaimed3(_tokenID);
 		}
         if (_contractAddress == nftContract4Address) {
             require(msg.sender == contract4.ownerOf(_tokenID), "You don't own this Wasteland Piece!");
-            require(hasBeenClaimed4[_tokenID] == 0, "Custom has already been Claimed");
+            require(hasBeenClaimed4[_tokenID] == 0, "Custom has already been Claimed for this Wasteland piece");
 			require(msg.value >= claimCost, "Insufficient funds");
             addHasBeenClaimed4(_tokenID);
 		}
         if (_contractAddress == nftContract5Address) {
             require(msg.sender == contract5.ownerOf(_tokenID), "You don't own this Resonate Piece!");
-            require(hasBeenClaimed5[_tokenID] == 0, "Custom has already been Claimed");
+            require(hasBeenClaimed5[_tokenID] == 0, "Custom has already been Claimed for this Resonate Piece");
 			require(msg.value >= claimCost, "Insufficient funds");
             addHasBeenClaimed5(_tokenID);
+		}
+        if (_contractAddress == nftContract6Address) {
+            require(msg.sender == contract6.ownerOf(_tokenID), "You don't own this Overload Piece!");
+            require(hasBeenClaimed6[_tokenID] == 0, "Custom has already been Claimed for this Overload Piece");
+			require(msg.value >= claimCost, "Insufficient funds");
+            addHasBeenClaimed6(_tokenID);
+		}
+        if (_contractAddress == nftContract7Address) {
+            require(msg.sender == contract7.ownerOf(_tokenID), "You don't own this Mind Matters Piece!");
+            require(hasBeenClaimed7[_tokenID] == 0, "Custom has already been Claimed for this Mind Matters Piece");
+			require(msg.value >= claimCost, "Insufficient funds");
+            addHasBeenClaimed7(_tokenID);
+		}
+        if (_contractAddress == nftContract8Address) {
+            require(msg.sender == contract8.ownerOf(_tokenID), "You don't own this Tales Piece!");
+            require(hasBeenClaimed8[_tokenID] == 0, "Custom has already been Claimed for this Tales Piece");
+			require(msg.value >= claimCost, "Insufficient funds");
+            addHasBeenClaimed8(_tokenID);
 		}
 
 		_mintLoop(uri, _msgSender());
@@ -779,7 +804,23 @@ contract Scribbles is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownabl
         nftContract5Address = _nftContract5Address;
     }
 
-   function onERC721Received(address, address, uint256, bytes calldata) external pure override returns (bytes4) {
+    function setNftContract6Address(address _nftContract6Address) external onlyOwner{
+        nftContract6Address = _nftContract6Address;
+    }
+
+    function setNftContract7Address(address _nftContract7Address) external onlyOwner{
+        nftContract7Address = _nftContract7Address;
+    }
+
+    function setNftContract8Address(address _nftContract8Address) external onlyOwner{
+        nftContract8Address = _nftContract8Address;
+    }
+
+    function changeURI (uint256 tokenID, string calldata uri) public onlyOwner {
+		_setTokenURI(tokenID, uri);
+	}
+
+    function onERC721Received(address, address, uint256, bytes calldata) external pure override returns (bytes4) {
         return IERC721Receiver.onERC721Received.selector;
     } 
 
