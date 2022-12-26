@@ -2699,6 +2699,7 @@ contract SpotBots is
         for(uint i = 0; i < tokenAmount; i++) {
             _tokenIds.increment();
             uint256 newItemId = _tokenIds.current();
+            _processStatAssignment(newItemId);
             _mint(msg.sender, newItemId);
             
         }
@@ -2718,6 +2719,7 @@ contract SpotBots is
         for(uint i = 0; i < tokenAmount; i++) {
             _tokenIds.increment();
             uint256 newItemId = _tokenIds.current();
+            _processStatAssignment(newItemId);
             _mint(msg.sender, newItemId);
             
         }
