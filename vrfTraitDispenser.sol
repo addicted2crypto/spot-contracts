@@ -708,11 +708,11 @@ library SafeMath {
 
 
 
-//staking contrack
+//staking contract
 
-contract SpotStaking is VRFConsumerBaseV2, ConfirmedOwner {
+contract SpotStaking is VRFConsumerBaseV2, Ownable {
     
- event RequestSent(uint256 requestId, uint32 numWords);
+    event RequestSent(uint256 requestId, uint32 numWords);
     event RequestFulfilled(uint256 requestId, uint256[] randomWords);
 
     struct RequestStatus {
@@ -730,6 +730,7 @@ contract SpotStaking is VRFConsumerBaseV2, ConfirmedOwner {
     // past requests Id.
     uint256[] public requestIds;
     uint256 public lastRequestId;
+    uint256 public lastNumberUnder100;
 
     // The gas lane to use, which specifies the maximum gas price to bump to.
     // For a list of available gas lanes on each network,
@@ -778,7 +779,7 @@ contract SpotStaking is VRFConsumerBaseV2, ConfirmedOwner {
         address _vrfCoordinator,
         bytes32 _keyHash,
         uint64 _subscriptionId
-    ) 
+        ) 
         VRFConsumerBaseV2(_vrfCoordinator) {
         vrfCoordinator = _vrfCoordinator;
         COORDINATOR = VRFCoordinatorV2Interface(_vrfCoordinator);
@@ -822,6 +823,42 @@ contract SpotStaking is VRFConsumerBaseV2, ConfirmedOwner {
 
         userToIndexStakeStart[msg.sender][index] = block.timestamp;
         emit StakeStarted(msg.sender, _contract, block.timestamp);
+    }
+
+    function randomTrait(address _contract, uint256 requestId) public returns (uint256 numberUnder100) {
+
+        requestId = COORDINATOR.requestRandomWords(
+            keyHash,
+            subscriptionId,
+            requestConfirmations,
+            callbackGasLimit,
+            numWords
+        );
+        s_requests[requestId] = RequestStatus({
+            randomWords: new uint256[](0),
+            exists: true,
+            fulfilled: false
+        });
+        requestIds.push(requestId);
+        lastRequestId = requestId;
+        numberUnder100 = (requestId % 132);
+        lastNumberUnder100 = numberUnder100;
+        emit RequestSent(requestId, numWords);
+        
+
+        uint index = contractToIndexes[_contract][numberUnder100];
+        IERC721 spotNFT = IERC721(SPOT_CONTRACT);
+        require(spotNFT.balanceOf(msg.sender) > 0, "Spot Staking: You don't have a Spot!");
+
+        StakeItem memory s = stakeItems[index];
+
+        IERC1155 rewardContract = IERC1155(s.rewardContract);
+        require(rewardContract.balanceOf(address(this), s.tokenID) > 0, "Spot Staking: No rewards available!");
+
+        rewardContract.safeTransferFrom(address(this), msg.sender, s.tokenID, 1, "");
+        userToIndexClaimed[msg.sender][index] = 1;
+        emit RewardClaimed(msg.sender, _contract, index);
+        return numberUnder100;
     }
 
     function claimStake(address _contract, uint _contractIndex) public {
@@ -900,7 +937,7 @@ contract SpotStaking is VRFConsumerBaseV2, ConfirmedOwner {
         // Will revert if subscription is not set and funded.
         requestId = COORDINATOR.requestRandomWords(
             keyHash,
-            s_subscriptionId,
+            subscriptionId,
             requestConfirmations,
             callbackGasLimit,
             numWords
@@ -914,6 +951,28 @@ contract SpotStaking is VRFConsumerBaseV2, ConfirmedOwner {
         lastRequestId = requestId;
         emit RequestSent(requestId, numWords);
         return requestId;
+    }
+
+    function getNumberUnder100(uint requestId) public onlyOwner returns (uint256 numberUnder100)
+    {
+        requestId = COORDINATOR.requestRandomWords(
+            keyHash,
+            subscriptionId,
+            requestConfirmations,
+            callbackGasLimit,
+            numWords
+        );
+        s_requests[requestId] = RequestStatus({
+            randomWords: new uint256[](0),
+            exists: true,
+            fulfilled: false
+        });
+        requestIds.push(requestId);
+        lastRequestId = requestId;
+        numberUnder100 = (requestId % 132);
+        lastNumberUnder100 = numberUnder100;
+        emit RequestSent(requestId, numWords);
+        return numberUnder100;
     }
 
     function fulfillRandomWords(
