@@ -461,9 +461,50 @@ interface IBUILDTOKEN {
     function balanceOf(address owner, uint256 typeId) external view returns (uint256);
 }
 
+interface IRUGGEDTOKEN {
+    function burnRugToken(uint256 typeId, address burnTokenAddress, uint tokenAmount) external;
+    function balanceOf(address owner, uint256 typeId) external view returns (uint256);
+}
+
+pragma solidity ^0.8.1;
+//Dev @moonbags
+abstract contract KindaRandom {
+  uint256 private _index = 0;
+  uint256 private _supply;
+  mapping(uint256 => uint256) _ids;
+
+  constructor(uint256 supply_) {
+    _supply = supply_;
+  }
+
+  function generateKindaRandomID(uint256 randomIndex) internal virtual returns (uint256) {
+    uint256 remainder = _supply - _index;
+    uint256 available;
+    uint256 result;
+
+    if (_ids[remainder - 1] == 0) {
+      available = remainder - 1;
+    } else {
+      available = _ids[remainder - 1];
+    }
+
+    if (_ids[randomIndex] == 0) {
+      result = randomIndex;
+      _ids[randomIndex] = available;
+    } else {
+      result = _ids[randomIndex];
+      _ids[randomIndex] = available;
+    }
+
+    _index++;
+
+    return result;
+  }
+}
+
 //SPOT Bot: Brought to you by The Spot Devs. View all of The Spot's Projects at https://thespot.art 
 
-contract SPOTbot is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable {
+contract SPOTbot is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable, KindaRandom {
   using Strings for uint256;
   using Counters for Counters.Counter;
 
@@ -474,6 +515,7 @@ contract SPOTbot is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable 
 
   bool public paused = true;
   bool public building = false;
+  bool public rugged = false;
   uint256 private _startTime;
   uint public _totalSupply = 5000;
   uint public _mintSupply = 3000;
@@ -483,10 +525,12 @@ contract SPOTbot is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable 
   address public treasuryWallet; 
   address public ADMIN_WALLET = 0x32bD2811Fb91BC46756232A0B8c6b2902D7d8763;  
   address public buildTokenAddress = 0xd9145CCE52D386f254917e481eB44e9943F39138; // ERC-1155 build token contract
+  address public rugListTokenAddress = 0xd9145CCE52D386f254917e481eB44e9943F39138; // ERC-1155 build token contract
 
   IBUILDTOKEN buildTokenContract = IBUILDTOKEN(buildTokenAddress);
+  IRUGGEDTOKEN rugListTokenContract = IRUGGEDTOKEN(rugListTokenAddress);
 
-  constructor() ERC721("SPOT Bot", "SPOTbot") {
+  constructor() ERC721("SPOT Bot", "SPOTbot") KindaRandom(100) {
     baseUriExtended = "ipfs://QmZVtDPexcAA7gCitJZjkuYFNefGC7qNS7qT7MbeqyPCmB/";
 
   }
@@ -524,11 +568,8 @@ contract SPOTbot is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable 
         payable(ADMIN_WALLET).transfer(msg.value);
 
         for(uint i = 0; i < tokenAmount; i++) {
-            _tokenIds.increment();
-            uint256 newItemId = _tokenIds.current();
-            _mint(msg.sender, newItemId);
-            _setTokenURI(newItemId, string( abi.encodePacked(baseUriExtended, newItemId.toString(), uriSuffix) ));
-        }
+         _privateMint(msg.sender);
+    }
      
         return true;
     } 
@@ -537,21 +578,44 @@ contract SPOTbot is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable 
     
     // MINT WITH ERC-1155 TOKEN RECIEVED FROM SACRIFICING
 
-    function build(uint256 tokenAmount, uint256 buildTokenId, address from) external {
+    function build(uint256 tokenAmount, uint256 buildTokenId, address from) external returns (bool) {
 		require(building, "Building is paused");
 		require(buildTokenContract.balanceOf(msg.sender, buildTokenId) >= tokenAmount, "You do not own a Spot Bot Build Token");
         require(_tokenIds.current() + tokenAmount >= _mintSupply, "Maximum Supply Not Yet Minted");
         require(_tokenIds.current() + tokenAmount <= _totalSupply, "Maximum Supply Built");
 	    buildTokenContract.burnBuildToken(buildTokenId, from, tokenAmount);
         for(uint i = 0; i < tokenAmount; i++) {
-            _tokenIds.increment();
-            uint256 newItemId = _tokenIds.current();
-            _mint(msg.sender, newItemId);
-            _setTokenURI(newItemId, string( abi.encodePacked(baseUriExtended, newItemId.toString(), uriSuffix) ));
-        }
+         _privateMint(msg.sender);
+    }
       
-       // return true;
+        return true;
     } 
+
+	// MINT WITH ERC-1155 TOKEN FOR RUG LIST
+
+    function rugListClaim(uint256 tokenAmount, uint256 rugListTokenId, address from) external returns (bool) {
+		require(rugged, "Rugged List is paused");
+		require(rugListTokenContract.balanceOf(msg.sender, rugListTokenId) >= tokenAmount, "You do not own a Rugged List Build Token");
+        require(_tokenIds.current() + tokenAmount <= _mintSupply, "Maximum Supply Minted");
+	    rugListTokenContract.burnRugToken(rugListTokenId, from, tokenAmount);
+        for(uint i = 0; i < tokenAmount; i++) {
+         _privateMint(msg.sender);
+    }
+      
+        return true;
+    } 
+
+	function _privateMint(address recipient) private {
+        uint256 randomish = uint256(keccak256(abi.encodePacked(block.difficulty, block.timestamp))) % (_totalSupply - _tokenIds.current());
+
+        _tokenIds.increment();
+        require(_tokenIds.current() <= _totalSupply, "Project is finished minting.");
+
+        uint256 newItemId = generateKindaRandomID(randomish) + 1; // metadata is 1 indexed
+        _mint(recipient, newItemId);
+        _setTokenURI(newItemId, string( abi.encodePacked(baseUriExtended, newItemId.toString(), uriSuffix) ));
+    }
+
 
 	function setMintSupply(uint256 mintSupply) external onlyOwner() {
         _mintSupply = mintSupply;
@@ -577,6 +641,11 @@ contract SPOTbot is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable 
 		building = !building;
 	}
 
+	function flipRugListState() public onlyOwner {
+		rugged = !rugged;
+	}
+
+
     function setTokenURI(uint256 tokenId, string memory _tokenURI) public onlyOwner {
         require(_exists(tokenId), "ERC721URIStorage: URI set of nonexistent token");
         _setTokenURI(tokenId, _tokenURI);
@@ -591,6 +660,10 @@ contract SPOTbot is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable 
 
     function setBuildContract(address _buildTokenAddress) external onlyOwner() {
         buildTokenAddress = _buildTokenAddress;
+    }
+
+	function setRugListContract(address _rugListTokenAddress) external onlyOwner() {
+        rugListTokenAddress = _rugListTokenAddress;
     }
   
     function setTreasuryWalletAddress(address _treasuryWallet)
