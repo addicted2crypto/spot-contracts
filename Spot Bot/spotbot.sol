@@ -530,7 +530,7 @@ contract SPOTbot is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable,
   IBUILDTOKEN buildTokenContract = IBUILDTOKEN(buildTokenAddress);
   IRUGGEDTOKEN rugListTokenContract = IRUGGEDTOKEN(rugListTokenAddress);
 
-  constructor() ERC721("SPOT Bot", "SPOTbot") KindaRandom(100) {
+  constructor() ERC721("SPOT Bot", "SPOTbot") KindaRandom(5000) {
     baseUriExtended = "ipfs://QmZVtDPexcAA7gCitJZjkuYFNefGC7qNS7qT7MbeqyPCmB/";
 
   }
@@ -559,7 +559,7 @@ contract SPOTbot is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable,
 
     // MINT
 
-    function mint(uint256 tokenAmount) external payable returns (bool) {
+    function mint(uint256 tokenAmount) external payable {
 		require(!paused, "Minting is paused");
         require(_tokenIds.current() + tokenAmount <= _mintSupply, "Maximum Supply Minted");
         require(msg.value == _mintFee*(tokenAmount), "Invalid Minting Fee");
@@ -571,14 +571,14 @@ contract SPOTbot is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable,
          _privateMint(msg.sender);
     }
      
-        return true;
+       // return true;
     } 
 
 
     
     // MINT WITH ERC-1155 TOKEN RECIEVED FROM SACRIFICING
 
-    function build(uint256 tokenAmount, uint256 buildTokenId, address from) external returns (bool) {
+    function build(uint256 tokenAmount, uint256 buildTokenId, address from) external {
 		require(building, "Building is paused");
 		require(buildTokenContract.balanceOf(msg.sender, buildTokenId) >= tokenAmount, "You do not own a Spot Bot Build Token");
         require(_tokenIds.current() + tokenAmount >= _mintSupply, "Maximum Supply Not Yet Minted");
@@ -588,12 +588,12 @@ contract SPOTbot is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable,
          _privateMint(msg.sender);
     }
       
-        return true;
+    //    return true;
     } 
 
 	// MINT WITH ERC-1155 TOKEN FOR RUG LIST
 
-    function rugListClaim(uint256 tokenAmount, uint256 rugListTokenId, address from) external returns (bool) {
+    function rugListClaim(uint256 tokenAmount, uint256 rugListTokenId, address from) external {
 		require(rugged, "Rugged List is paused");
 		require(rugListTokenContract.balanceOf(msg.sender, rugListTokenId) >= tokenAmount, "You do not own a Rugged List Build Token");
         require(_tokenIds.current() + tokenAmount <= _mintSupply, "Maximum Supply Minted");
@@ -602,7 +602,7 @@ contract SPOTbot is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable,
          _privateMint(msg.sender);
     }
       
-        return true;
+        //return true;
     } 
 
 	function _privateMint(address recipient) private {
