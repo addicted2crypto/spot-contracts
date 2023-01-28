@@ -522,10 +522,10 @@ contract SPOTbot is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable,
   uint256 public walletMaxMint = 20;
   uint256 public _mintFee = 2 ether;
 
-  address public treasuryWallet; 
+  address public treasuryWallet = 0x32bD2811Fb91BC46756232A0B8c6b2902D7d8763; 
   address public ADMIN_WALLET = 0x32bD2811Fb91BC46756232A0B8c6b2902D7d8763;  
   address public buildTokenAddress = 0xd9145CCE52D386f254917e481eB44e9943F39138; // ERC-1155 build token contract
-  address public rugListTokenAddress = 0xd9145CCE52D386f254917e481eB44e9943F39138; // ERC-1155 build token contract
+  address public rugListTokenAddress = 0xd9145CCE52D386f254917e481eB44e9943F39138; // ERC-1155 rug list token contract
 
   IBUILDTOKEN buildTokenContract = IBUILDTOKEN(buildTokenAddress);
   IRUGGEDTOKEN rugListTokenContract = IRUGGEDTOKEN(rugListTokenAddress);
@@ -587,8 +587,6 @@ contract SPOTbot is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable,
         for(uint i = 0; i < tokenAmount; i++) {
          _privateMint(msg.sender);
     }
-      
-    //    return true;
     } 
 
 	// MINT WITH ERC-1155 TOKEN FOR RUG LIST
@@ -601,8 +599,6 @@ contract SPOTbot is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable,
         for(uint i = 0; i < tokenAmount; i++) {
          _privateMint(msg.sender);
     }
-      
-        //return true;
     } 
 
 	function _privateMint(address recipient) private {
