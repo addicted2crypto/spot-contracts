@@ -502,9 +502,9 @@ abstract contract KindaRandom {
   }
 }
 
-//SPOT Bot: Brought to you by The Spot Devs. View all of The Spot's Projects at https://thespot.art 
+//Avax Trucks 
 
-contract SPOTbot is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable, KindaRandom {
+contract AvaxTrucks is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable, KindaRandom {
   using Strings for uint256;
   using Counters for Counters.Counter;
 
@@ -517,20 +517,14 @@ contract SPOTbot is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable,
   bool public building = false;
   bool public rugged = false;
   uint256 private _startTime;
-  uint public _totalSupply = 5000;
-  uint public _mintSupply = 3000;
-  uint256 public walletMaxMint = 20;
+  uint public _totalSupply = 10000;
+  uint256 public walletMaxMint = 10;
   uint256 public _mintFee = 2 ether;
 
   address public treasuryWallet = 0x32bD2811Fb91BC46756232A0B8c6b2902D7d8763; 
   address public ADMIN_WALLET = 0x32bD2811Fb91BC46756232A0B8c6b2902D7d8763;  
-  address public buildTokenAddress = 0xd9145CCE52D386f254917e481eB44e9943F39138; // ERC-1155 build token contract
-  address public rugListTokenAddress = 0xd9145CCE52D386f254917e481eB44e9943F39138; // ERC-1155 rug list token contract
 
-  IBUILDTOKEN buildTokenContract = IBUILDTOKEN(buildTokenAddress);
-  IRUGGEDTOKEN rugListTokenContract = IRUGGEDTOKEN(rugListTokenAddress);
-
-  constructor() ERC721("SPOT Bot", "SPOTbot") KindaRandom(5000) {
+  constructor() ERC721("Avax Trucks", "AvaxTrucks") KindaRandom(10000) {
     baseUriExtended = "ipfs://QmZVtDPexcAA7gCitJZjkuYFNefGC7qNS7qT7MbeqyPCmB/";
     
   }
@@ -552,50 +546,16 @@ contract SPOTbot is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable,
         baseUriExtended = baseURI_;
     }
 
-
-  function setMaxMint(uint _maxMint) private onlyOwner() {
-    _mintSupply = _maxMint;
-  }
-
     // MINT
 
     function mint(uint256 tokenAmount) external payable {
 		require(!paused, "Minting is paused");
-        require(_tokenIds.current() + tokenAmount <= _mintSupply, "Maximum Supply Minted");
+        require(_tokenIds.current() + tokenAmount <= _totalSupply, "Maximum Supply Minted");
         require(msg.value == _mintFee*(tokenAmount), "Invalid Minting Fee");
         require(tokenAmount <= walletMaxMint, "Max limit exceed");
         
         payable(ADMIN_WALLET).transfer(msg.value);
 
-        for(uint i = 0; i < tokenAmount; i++) {
-         _privateMint(msg.sender);
-    }
-     
-       // return true;
-    } 
-
-
-    
-    // MINT WITH ERC-1155 TOKEN RECIEVED FROM SACRIFICING
-
-    function build(uint256 tokenAmount, uint256 buildTokenId) external {
-		require(building, "Building is paused");
-		require(buildTokenContract.balanceOf(msg.sender, buildTokenId) >= tokenAmount, "You do not own a Spot Bot Build Token");
-        require(_tokenIds.current() + tokenAmount >= _mintSupply, "Maximum Supply Not Yet Minted");
-        require(_tokenIds.current() + tokenAmount <= _totalSupply, "Maximum Supply Built");
-	    buildTokenContract.burnBuildToken(buildTokenId, msg.sender, tokenAmount);
-        for(uint i = 0; i < tokenAmount; i++) {
-         _privateMint(msg.sender);
-    }
-    } 
-
-	// MINT WITH ERC-1155 TOKEN FOR RUG LIST
-
-    function rugListClaim(uint256 tokenAmount, uint256 rugListTokenId) external {
-		require(rugged, "Rugged List is paused");
-		require(rugListTokenContract.balanceOf(msg.sender, rugListTokenId) >= tokenAmount, "You do not own a Rugged List Build Token");
-        require(_tokenIds.current() + tokenAmount <= _mintSupply, "Maximum Supply Minted");
-	    rugListTokenContract.burnRugToken(rugListTokenId, msg.sender, tokenAmount);
         for(uint i = 0; i < tokenAmount; i++) {
          _privateMint(msg.sender);
     }
@@ -610,11 +570,6 @@ contract SPOTbot is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable,
         uint256 newItemId = generateKindaRandomID(randomish) + 1; // metadata is 1 indexed
         _mint(recipient, newItemId);
         _setTokenURI(newItemId, string( abi.encodePacked(baseUriExtended, newItemId.toString(), uriSuffix) ));
-    }
-
-
-	function setMintSupply(uint256 mintSupply) external onlyOwner() {
-        _mintSupply = mintSupply;
     }
 
     function setMaxSupply(uint256 maxSupply) external onlyOwner() {
@@ -633,15 +588,6 @@ contract SPOTbot is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable,
 		paused = !paused;
 	}
 
-	function flipBuildState() public onlyOwner {
-		building = !building;
-	}
-
-	function flipRugListState() public onlyOwner {
-		rugged = !rugged;
-	}
-
-
     function setTokenURI(uint256 tokenId, string memory _tokenURI) public onlyOwner {
         require(_exists(tokenId), "ERC721URIStorage: URI set of nonexistent token");
         _setTokenURI(tokenId, _tokenURI);
@@ -652,16 +598,6 @@ contract SPOTbot is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable,
 
         return string( abi.encodePacked(super.tokenURI(tokenID)) );
     
-    }
-
-    function setBuildContract(address _buildTokenAddress) external onlyOwner() {
-        buildTokenAddress = _buildTokenAddress;
-        buildTokenContract = IBUILDTOKEN(buildTokenAddress);
-    }
-
-    function setRugListContract(address _rugListTokenAddress) external onlyOwner() {
-        rugListTokenAddress = _rugListTokenAddress;
-        rugListTokenContract = IRUGGEDTOKEN(rugListTokenAddress);
     }
   
     function setTreasuryWalletAddress(address _treasuryWallet)
