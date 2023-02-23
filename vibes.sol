@@ -10,15 +10,23 @@ contract Vibes is ERC1155, Ownable {
     uint256 public _mintFee = 1 ether;
     mapping (uint256 => bool) private _tokenExists;
     string private _baseURI;
+   
+    mapping (uint256 => mapping(address => bool)) private _holderToToken;
+    mapping (uint256 => mapping(address => uint256)) private _balances;
+    mapping (uint256 => address[]) private _tokenOwners;
+    mapping (uint256 => bool) private _addToGudVibes;
 
     constructor(address feeWallet, string memory baseURI) ERC1155("Vibes") {
         _feeWallet = feeWallet;
         _baseURI = baseURI;
     }
 
-    function setFeeWallet(address feeWallet) external onlyOwner {
-        require(feeWallet != address(0), "Invalid fee wallet address");
-        _feeWallet = feeWallet;
+    function addToGudVibes(uint256 tokenId, bool value) public {
+        _addToGudVibes[tokenId] = value;
+    }
+
+    function getGudVibes(uint256 tokenId) public view returns (bool) {
+        return _addToGudVibes[tokenId];
     }
 
     function mint(address to, uint256 id, uint256 amount) external payable {
@@ -28,9 +36,28 @@ contract Vibes is ERC1155, Ownable {
 
         _mint(to, id, amount, "[]");
         _totalSupply[id] += amount;
+        
+        if (_balances[id][to] == 0) {
+            _tokenOwners[id].push(to);
+        }
 
-        payable(_feeWallet).transfer(msg.value);
+        if (_addToGudVibes[id] == true) {
+            payable(to).transfer(msg.value / 2);
+            payable(_feeWallet).transfer(msg.value / 2);
+        } else if (_addToGudVibes[id] == false) {
+            //Select a random wallet that has been sent gudVibes and send them 50% of the badVibes minting fee
+            uint256 numTokenHolders = _tokenOwners[1].length;
+            if (numTokenHolders > 0) {
+                uint256 randomIndex = uint256(keccak256(abi.encodePacked(block.timestamp, msg.sender, id, amount))) % numTokenHolders;
+                address randomHolder = _tokenOwners[1][randomIndex];
+                payable(randomHolder).transfer(msg.value / 2);
+            }
+            payable(_feeWallet).transfer(msg.value / 2);
+        } else {
+            payable(_feeWallet).transfer(msg.value);
+        }
     }
+
 
     function mintToOwner(uint256 id, uint256 amount, bytes memory data) external onlyOwner {
         _mint(msg.sender, id, amount, data);
@@ -38,6 +65,15 @@ contract Vibes is ERC1155, Ownable {
         if (!_tokenExists[id]) {
             _tokenExists[id] = true;
         }
+    }
+
+    function isTokenHolder(address tokenHolder, uint256 tokenId) public view returns (bool) {
+        for (uint256 i = 0; i < _tokenOwners[tokenId].length; i++) {
+            if (_tokenOwners[tokenId][i] == tokenHolder) {
+                return true;
+            }
+        }
+        return false;
     }
 
     function totalSupply(uint256 id) public view returns (uint256) {
