@@ -11,7 +11,6 @@ contract Vibes is ERC1155, Ownable {
     mapping (uint256 => bool) private _tokenExists;
     string private _baseURI;
    
-    mapping (uint256 => mapping(address => uint256)) private _balances;
     mapping (uint256 => address[]) private _tokenOwners;
     mapping (uint256 => bool) private _addToGudVibes;
 
