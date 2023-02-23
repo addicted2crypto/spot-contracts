@@ -11,7 +11,6 @@ contract Vibes is ERC1155, Ownable {
     mapping (uint256 => bool) private _tokenExists;
     string private _baseURI;
    
-    mapping (uint256 => mapping(address => bool)) private _holderToToken;
     mapping (uint256 => mapping(address => uint256)) private _balances;
     mapping (uint256 => address[]) private _tokenOwners;
     mapping (uint256 => bool) private _addToGudVibes;
@@ -37,7 +36,7 @@ contract Vibes is ERC1155, Ownable {
         _mint(to, id, amount, "[]");
         _totalSupply[id] += amount;
         
-        if (_balances[id][to] == 0) {
+        if (balanceOf(to, id) == 0) {
             _tokenOwners[id].push(to);
         }
 
@@ -75,6 +74,7 @@ contract Vibes is ERC1155, Ownable {
         }
         return false;
     }
+    
 
     function totalSupply(uint256 id) public view returns (uint256) {
         return _totalSupply[id];
