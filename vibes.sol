@@ -28,6 +28,26 @@ contract Vibes is ERC1155, Ownable {
         return _addToGudVibes[tokenId];
     }
 
+    function addToTokenOwners(uint256 id, address to) internal {
+        if (_tokenOwners[id].length == 0) {
+            // This is the first owner for this token ID
+            _tokenOwners[id].push(to);
+        } else {
+            bool ownerExists = false;
+            for (uint256 i = 0; i < _tokenOwners[id].length; i++) {
+                if (_tokenOwners[id][i] == to) {
+                    // The owner already exists in the array
+                    ownerExists = true;
+                    break;
+                }
+            }
+            if (!ownerExists) {
+                // Add the new owner to the end of the array
+                _tokenOwners[id].push(to);
+            }
+        }
+    }
+
     function mint(address to, uint256 id, uint256 amount) external payable {
         require(_exists(id), "ERC1155: Cannot Mint a Token Id that doesn't exist");
         require(to != address(msg.sender), "Invalid recipient address");
@@ -36,9 +56,7 @@ contract Vibes is ERC1155, Ownable {
         _mint(to, id, amount, "[]");
         _totalSupply[id] += amount;
         
-        if (balanceOf(to, id) == 0) {
-            _tokenOwners[id].push(to);
-        }
+        addToTokenOwners(id, to);
 
         if (_addToGudVibes[id] == true) {
             payable(to).transfer(msg.value / 2);
@@ -66,14 +84,15 @@ contract Vibes is ERC1155, Ownable {
         }
     }
 
-    function isTokenHolder(address tokenHolder, uint256 tokenId) public view returns (bool) {
-        for (uint256 i = 0; i < _tokenOwners[tokenId].length; i++) {
-            if (_tokenOwners[tokenId][i] == tokenHolder) {
+    function isTokenOwner(uint256 id, address owner) public view returns (bool) {
+        for (uint256 i = 0; i < _tokenOwners[id].length; i++) {
+            if (_tokenOwners[id][i] == owner) {
                 return true;
             }
         }
         return false;
     }
+
     
 
     function totalSupply(uint256 id) public view returns (uint256) {
