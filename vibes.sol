@@ -20,7 +20,7 @@ contract Vibes is ERC1155, Ownable {
         _baseURI = baseURI;
     }
 
-    function addToGudVibes(uint256 tokenId, bool value) public {
+    function addToGudVibes(uint256 tokenId, bool value) public onlyOwner {
         _addToGudVibes[tokenId] = value;
     }
 
@@ -75,7 +75,6 @@ contract Vibes is ERC1155, Ownable {
         }
     }
 
-
     function mintToOwner(uint256 id, uint256 amount, bytes memory data) external onlyOwner {
         _mint(msg.sender, id, amount, data);
         _totalSupply[id] += amount;
@@ -92,8 +91,6 @@ contract Vibes is ERC1155, Ownable {
         }
         return false;
     }
-
-    
 
     function totalSupply(uint256 id) public view returns (uint256) {
         return _totalSupply[id];
