@@ -17,7 +17,7 @@ contract MyNFT is ERC721, Ownable {
     uint256 public levelThreshold5;
 
     uint256 private nonce = 0; // used for random number generation
-    uint256 private maxTokenID = 10000; // maximum token ID
+    uint256 public maxTokenID; // maximum token ID
     uint256 private mintedTokens = 0; // number of tokens that have been minted
 
     IERC1155 private external1155Contract; // external ERC-1155 contract instance
@@ -38,7 +38,8 @@ contract MyNFT is ERC721, Ownable {
         uint256 _levelThreshold2,
         uint256 _levelThreshold3,
         uint256 _levelThreshold4,
-        uint256 _levelThreshold5
+        uint256 _levelThreshold5,
+        uint256 _maxTokenID
     ) ERC721(_name, _symbol) {
         external1155Contract = IERC1155(_external1155ContractAddress);
         levelThreshold1 = _levelThreshold1;
@@ -46,6 +47,7 @@ contract MyNFT is ERC721, Ownable {
         levelThreshold3 = _levelThreshold3;
         levelThreshold4 = _levelThreshold4;
         levelThreshold5 = _levelThreshold5;
+        maxTokenID = _maxTokenID;
         royaltyAddress = payable(address(this));
     }
 
@@ -133,6 +135,9 @@ contract MyNFT is ERC721, Ownable {
     return string(uriBytes);
 }
 
+    function setMaxTokenID(uint256 newMaxTokenID) public onlyOwner {
+        maxTokenID = newMaxTokenID;
+    }
 
     // function to set the level thresholds
     function setLevelThresholds(
