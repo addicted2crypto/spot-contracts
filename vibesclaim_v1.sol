@@ -24,6 +24,9 @@ contract MyNFT is ERC721, Ownable {
     uint256 private external1155TokenID1 = 1; // external ERC-1155 token ID 1
     uint256 private external1155TokenID2 = 2; // external ERC-1155 token ID 2
 
+    address payable public royaltyAddress;
+    uint256 public royaltyPercentage = 5;
+
     // events
     event LevelUpdated(address indexed owner, uint256 level);
 
@@ -43,6 +46,7 @@ contract MyNFT is ERC721, Ownable {
         levelThreshold3 = _levelThreshold3;
         levelThreshold4 = _levelThreshold4;
         levelThreshold5 = _levelThreshold5;
+        royaltyAddress = payable(address(this));
     }
 
     // function to mint a token
@@ -143,5 +147,20 @@ contract MyNFT is ERC721, Ownable {
         levelThreshold3 = _levelThreshold3;
         levelThreshold4 = _levelThreshold4;
         levelThreshold5 = _levelThreshold5;
+    }
+
+    function royaltyInfo(uint256 _salePrice) external view  returns (address receiver, uint256 royaltyAmount) {
+        uint256 royaltyValue = (_salePrice * royaltyPercentage) / 100;
+        return (royaltyAddress, royaltyValue);
+    }
+
+    function setRoyaltyAddress(address payable _royaltyAddress) external onlyOwner {
+        require(_royaltyAddress != address(0), "Invalid address");
+        royaltyAddress = _royaltyAddress;
+    }
+
+    function setRoyaltyPercentage(uint256 _percentage) external onlyOwner {
+        require(_percentage <= 100, "Invalid percentage");
+        royaltyPercentage = _percentage;
     }
 }
