@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
-contract MyNFT is ERC721 {
+contract Plots is ERC721 {
     uint256 public maxSupply;
     uint256 public currentSupply;
     mapping (uint256 => bool) public claimed;
