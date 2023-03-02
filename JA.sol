@@ -89,6 +89,14 @@ function getClaimAmount() public view returns (uint256) {
         airDrops[msg.sender] = 0;
         _transfer(address(this), msg.sender, airDropAmount);
     }
+    
+    function getRemainingClaimTime(address user) external view returns (uint256) {
+    uint256 nextClaimTime = lastClaimed[user].add(claimInterval);
+    if (block.timestamp >= nextClaimTime) {
+        return 0;
+    }
+    return nextClaimTime.sub(block.timestamp);
+}
 
     function distributeAirDrop() external {
         require(totalClaimed == totalSupply.div(2), "All initial claims must be completed");
