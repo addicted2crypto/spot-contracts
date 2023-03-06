@@ -45,9 +45,9 @@ contract JPEGANONToken is ERC20 {
         _updateEmission();
     }
 
-    function claim(address nftContract, uint256 tokenId) external {
+   function claim(address nftContract, uint256 tokenId) external {
     require(lastClaimed[msg.sender].add(claimInterval) <= block.timestamp, "You can only claim once every 24 hours");
-    require(IERC721(nftContract).ownerOf(tokenId) == msg.sender, "You do not own the required NFT");
+    IERC721(nftContract).safeTransferFrom(msg.sender, address(this), tokenId); // ERC721 token is transferred to this contract
     require(totalClaimed.add(maxClaimAmount) <= totalSupply.div(2), "All initial claims have been completed");
     uint256 claimAmount = getClaimAmount();
     lastClaimed[msg.sender] = block.timestamp;
@@ -55,6 +55,7 @@ contract JPEGANONToken is ERC20 {
     _transfer(address(this), msg.sender, claimAmount);
     emit Claim(msg.sender, claimAmount);
 }
+
 
 function getClaimAmount() public view returns (uint256) {
     uint256 claimAmount = emissionRate.mul(maxClaimAmount);
