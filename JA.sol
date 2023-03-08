@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-contract JPEGANONToken is ERC20 {
+contract JPEG is ERC20 {
     using SafeMath for uint256;
     
     address public treasury;
@@ -44,8 +44,12 @@ contract JPEGANONToken is ERC20 {
 
         _updateEmission();
     }
+    
+function approveTransfer(address nftContract, uint256 tokenId) external {
+    IERC721(nftContract).approve(address(this), tokenId);
+}
 
-   function claim(address nftContract, uint256 tokenId) external {
+function claim(address nftContract, uint256 tokenId) external {
     require(lastClaimed[msg.sender].add(claimInterval) <= block.timestamp, "You can only claim once every 24 hours");
     IERC721(nftContract).safeTransferFrom(msg.sender, address(this), tokenId); // ERC721 token is transferred to this contract
     require(totalClaimed.add(maxClaimAmount) <= totalSupply.div(2), "All initial claims have been completed");
