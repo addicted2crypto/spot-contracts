@@ -19,7 +19,7 @@ contract JPEG is ERC20 {
     mapping(address => uint256) public airDrops;
     mapping(address => uint256) public airDropSnapshots;
 
-    constructor(uint256 _initialSupply, uint256 _treasuryAllocation, uint256 _emissionRate, uint256 _weeklyReduction, uint256 _maxClaimAmount, uint256 _claimInterval) ERC20("JPEGANON", "JPEG") {
+    constructor(uint256 _initialSupply, uint256 _treasuryAllocation, uint256 _emissionRate, uint256 _weeklyReduction, uint256 _maxClaimAmount, uint256 _claimInterval) ERC20("JPEG", "JPEG") {
         require(_initialSupply > 0, "Initial supply must be greater than 0");
         require(_treasuryAllocation >= 0 && _treasuryAllocation <= 100, "Treasury allocation must be between 0 and 100");
         require(_emissionRate > 0, "Emission rate must be greater than 0");
