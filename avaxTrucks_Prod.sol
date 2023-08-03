@@ -3,6 +3,8 @@
 
 pragma solidity 0.8.11;
 
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+
 library Strings {
 	function toString(uint256 value) internal pure returns(string memory) {
 		if (value == 0) return "0";
@@ -104,6 +106,32 @@ interface IERC721Metadata is IERC721 {
 
 interface IERC721Receiver {
 	function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data) external returns(bytes4);
+}
+
+pragma solidity ^0.8.0;
+
+contract MintingFeeDistribution {
+    address payable public artistWallet;
+    address payable public theSpotWallet;
+    address payable public adminWallet;
+
+    constructor(address payable _artistWallet, address payable _theSpotWallet, address payable _adminWallet) {
+        artistWallet = _artistWallet;
+        theSpotWallet = _theSpotWallet;
+        adminWallet = _adminWallet;
+    }
+
+    function distributeFees(uint256 mintFee) external payable {
+        uint256 artistFee = mintFee * 10 / 100;
+        uint256 theSpotFee = mintFee * 5 / 100;
+        uint256 adminFee = mintFee - artistFee - theSpotFee;
+
+        require(msg.value == mintFee, "Invalid Minting Fee");
+
+        artistWallet.transfer(artistFee);
+        theSpotWallet.transfer(theSpotFee);
+        adminWallet.transfer(adminFee);
+    }
 }
 
 pragma solidity ^0.8.0;
@@ -456,16 +484,6 @@ abstract contract ERC721URIStorage is ERC721 {
     }
 }
 
-interface IBUILDTOKEN {
-    function burnBuildToken(uint256 typeId, address burnTokenAddress, uint tokenAmount) external;
-    function balanceOf(address owner, uint256 typeId) external view returns (uint256);
-}
-
-interface IRUGGEDTOKEN {
-    function burnRugToken(uint256 typeId, address burnTokenAddress, uint tokenAmount) external;
-    function balanceOf(address owner, uint256 typeId) external view returns (uint256);
-}
-
 pragma solidity ^0.8.1;
 //Dev @moonbags
 abstract contract KindaRandom {
@@ -507,6 +525,7 @@ abstract contract KindaRandom {
 contract AvaxTrucks is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownable, KindaRandom {
   using Strings for uint256;
   using Counters for Counters.Counter;
+  using SafeMath for uint256;
 
   Counters.Counter private _tokenIds;
 
@@ -515,26 +534,29 @@ contract AvaxTrucks is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownab
 
   bool public paused = true;
   uint256 private _startTime;
-  uint public _totalSupply = 10000;
+  uint public _totalSupply = 3500;
   uint256 public walletMaxMint = 10;
-  uint256 public _mintFee = 2 ether;
+  uint256 public _mintFee = 1 ether;
   uint256 public royaltyAmount;
 
   address public treasuryWallet = 0x32bD2811Fb91BC46756232A0B8c6b2902D7d8763; 
-  address public ADMIN_WALLET = 0x32bD2811Fb91BC46756232A0B8c6b2902D7d8763;  
+  address public adminWalletAddress = 0x32bD2811Fb91BC46756232A0B8c6b2902D7d8763;  
   address public freeMintCollectionContract;
   address private _currentContractAddress;
+  address payable public artistWalletAddress;
 
+  MintingFeeDistribution private mintingFeeDistributionContract;
   
   mapping(address => mapping(uint256 => bool)) private _mintedTokens;
   mapping(address => mapping(address => uint256)) private _mintedTokensCount;
 
-
-  constructor(address _freeMintCollectionContract, uint256 _royaltyAmount) ERC721("Avax Trucks", "AvaxTrucks") KindaRandom(10000) {
+  constructor(address _freeMintCollectionContract, uint256 _royaltyAmount, address payable _artistWallet, address payable _theSpotWallet, address payable _adminWallet) ERC721("Avax Trucks", "AvaxTrucks") KindaRandom(3500) {
     baseUriExtended = "ipfs://QmZVtDPexcAA7gCitJZjkuYFNefGC7qNS7qT7MbeqyPCmB/";
     freeMintCollectionContract = _freeMintCollectionContract;
 	_currentContractAddress = _freeMintCollectionContract;
 	royaltyAmount = _royaltyAmount;
+	artistWalletAddress = payable(_artistWallet);
+	mintingFeeDistributionContract = new MintingFeeDistribution(_artistWallet, _theSpotWallet, _adminWallet);
   }
 
 	modifier canMintWithNFT(uint256 nftTokenId) {
@@ -546,6 +568,9 @@ contract AvaxTrucks is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownab
 		_;
 	}
 
+    function setArtistWallet(address _artistWallet) external onlyOwner {
+        artistWalletAddress = payable(_artistWallet);
+    }
 
 	function updateRoyaltyAmount(uint256 newRoyaltyAmount) external onlyOwner {
         royaltyAmount = newRoyaltyAmount;
@@ -567,24 +592,70 @@ contract AvaxTrucks is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownab
         baseUriExtended = baseURI_;
     }
 
+	function setTokenURI(uint256 tokenId, string memory _tokenURI) public onlyOwner {
+        require(_exists(tokenId), "ERC721URIStorage: URI set of nonexistent token");
+        _setTokenURI(tokenId, _tokenURI);
+    } 
+
+    function setTreasuryWalletAddress(address _treasuryWallet)
+        external
+        onlyOwner
+    {
+        treasuryWallet = _treasuryWallet;
+    }
+
   	function baseURI() public view returns (string memory) {
         return baseUriExtended; 
     } 
 
+	function flipPausedState() public onlyOwner {
+		paused = !paused;
+	}
+
+	function setMaxSupply(uint256 maxSupply) external onlyOwner() {
+        _totalSupply = maxSupply;
+    }
+
     // MINT
 
-    function mint(uint256 tokenAmount) external payable {
+	function mint(uint256 tokenAmount) external payable {
 		require(!paused, "Minting is paused");
-        require(_tokenIds.current() + tokenAmount <= _totalSupply, "Maximum Supply Minted");
-        require(msg.value == _mintFee*(tokenAmount), "Invalid Minting Fee");
-        require(tokenAmount <= walletMaxMint, "Max limit exceed");
-        
-        payable(ADMIN_WALLET).transfer(msg.value);
+		require(_tokenIds.current() + tokenAmount <= _totalSupply, "Maximum Supply Minted");
+		require(tokenAmount <= walletMaxMint, "Max limit exceed");
 
+		uint256 mintFee = _mintFee;
+
+		require(msg.value == mintFee * tokenAmount, "Invalid Minting Fee");
+		require(tokenAmount <= walletMaxMint, "Max limit exceed");
+
+		// Call the distributeFees function in the MintingFeeDistribution contract
+		mintingFeeDistributionContract.distributeFees{value: msg.value}(_mintFee * tokenAmount);
+
+		for (uint i = 0; i < tokenAmount; i++) {
+			_privateMint(msg.sender);
+		}
+	}
+
+
+	/*function mint(uint256 tokenAmount) external payable {
+        require(!paused, "Minting is paused");
+        require(_tokenIds.current() + tokenAmount <= _totalSupply, "Maximum Supply Minted");
+        require(tokenAmount <= walletMaxMint, "Max limit exceed");
+
+        uint256 currentSupply = _tokenIds.current();
+        uint256 totalMinted = currentSupply + tokenAmount;
+
+        uint256 mintFee = _mintFee;
+
+        require(msg.value == mintFee * tokenAmount, "Invalid Minting Fee");
+		require(tokenAmount <= walletMaxMint, "Max limit exceed");
+        
+        payable(adminWalletAddress).transfer(msg.value);
+	
         for(uint i = 0; i < tokenAmount; i++) {
          _privateMint(msg.sender);
     }
-    } 
+    }*/
 
 	function _privateMint(address recipient) private {
         uint256 randomish = uint256(keccak256(abi.encodePacked(block.difficulty, block.timestamp))) % (_totalSupply - _tokenIds.current());
@@ -597,7 +668,7 @@ contract AvaxTrucks is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownab
         _setTokenURI(newItemId, string( abi.encodePacked(baseUriExtended, newItemId.toString(), uriSuffix) ));
     }
 
-	//Free Mint with ownership of collection
+	//Free Mint with ownership of set collection
 	function mintWithNFT(uint256 nftTokenId, address contractAddress) external canMintWithNFT(nftTokenId) {
 		require(contractAddress != address(0), "Invalid contract address");
 
@@ -617,11 +688,6 @@ contract AvaxTrucks is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownab
 		_mintedTokensCount[_currentContractAddress][msg.sender] += 1;
 	}
 
-
-    function setMaxSupply(uint256 maxSupply) external onlyOwner() {
-        _totalSupply = maxSupply;
-    }
-
     function remainingSupply() external view returns(uint256){
         return _totalSupply-(_tokenIds.current());
     }
@@ -629,28 +695,11 @@ contract AvaxTrucks is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownab
 	function totalSupply() public view returns(uint256){
 		return _tokenIds.current();
 	}
-  
-	function flipPausedState() public onlyOwner {
-		paused = !paused;
-	}
 
-    function setTokenURI(uint256 tokenId, string memory _tokenURI) public onlyOwner {
-        require(_exists(tokenId), "ERC721URIStorage: URI set of nonexistent token");
-        _setTokenURI(tokenId, _tokenURI);
-    } 
-
-    function tokenURI(uint256 tokenID) public view override returns(string memory) {
+	function tokenURI(uint256 tokenID) public view override returns(string memory) {
         require(_exists(tokenID), "ERC721Metadata: URI query for nonexistent token");
 
         return string( abi.encodePacked(super.tokenURI(tokenID)) );
-    
-    }
-  
-    function setTreasuryWalletAddress(address _treasuryWallet)
-        external
-        onlyOwner
-    {
-        treasuryWallet = _treasuryWallet;
     }
 
     function supportsInterface(bytes4 interfaceID) public view override returns(bool) {
