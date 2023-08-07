@@ -114,22 +114,26 @@ contract MintingFeeDistribution {
     address payable public artistWallet;
     address payable public theSpotWallet;
     address payable public adminWallet;
+	address payable public ownerWallet;
 
-    constructor(address payable _artistWallet, address payable _theSpotWallet, address payable _adminWallet) {
+    constructor(address payable _artistWallet, address payable _theSpotWallet, address payable _adminWallet, address payable _ownerWallet) {
         artistWallet = _artistWallet;
         theSpotWallet = _theSpotWallet;
         adminWallet = _adminWallet;
+		ownerWallet = _ownerWallet;
     }
 
     function distributeFees(uint256 mintFee) external payable {
         uint256 artistFee = mintFee * 10 / 100;
         uint256 theSpotFee = mintFee * 5 / 100;
-        uint256 adminFee = mintFee - artistFee - theSpotFee;
+		uint256 ownerFee = mintFee * 10 / 100;
+        uint256 adminFee = mintFee - artistFee - theSpotFee - ownerFee;
 
         require(msg.value == mintFee, "Invalid Minting Fee");
 
         artistWallet.transfer(artistFee);
         theSpotWallet.transfer(theSpotFee);
+		ownerWallet.transfer(ownerFee);
         adminWallet.transfer(adminFee);
     }
 }
@@ -549,12 +553,12 @@ contract AvaxTrucks is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownab
   mapping(address => mapping(uint256 => bool)) private _mintedTokens;
   mapping(address => mapping(address => uint256)) private _mintedTokensCount;
 
-  constructor(address _freeMintCollectionContract, uint256 _royaltyAmount, address payable _artistWallet, address payable _theSpotWallet, address payable _adminWallet) ERC721("Avax Trucks", "AvaxTrucks") KindaRandom(3500) {
-    baseUriExtended = "ipfs://QmZVtDPexcAA7gCitJZjkuYFNefGC7qNS7qT7MbeqyPCmB/";
+  constructor(address _freeMintCollectionContract, uint256 _royaltyAmount, address payable _artistWallet, address payable _theSpotWallet, address payable _adminWallet, address payable _ownerWallet) ERC721("Avax Trucks", "AvaxTrucks") KindaRandom(3500) {
+    baseUriExtended = "ipfs://QmSSXRAsanojXZcDoQSX5bCXxm36qMWxvtC5aNrA3L4j3q/";
     freeMintCollectionContract = _freeMintCollectionContract;
 	_currentContractAddress = _freeMintCollectionContract;
 	royaltyAmount = _royaltyAmount;
-	mintingFeeDistributionContract = new MintingFeeDistribution(_artistWallet, _theSpotWallet, _adminWallet);
+	mintingFeeDistributionContract = new MintingFeeDistribution(_artistWallet, _theSpotWallet, _adminWallet, _ownerWallet);
   }
 
 	modifier canMintWithNFT(uint256 nftTokenId) {
@@ -676,10 +680,11 @@ contract AvaxTrucks is ERC721URIStorage, IERC721Receiver, ReentrancyGuard, Ownab
 		require(!_mintedTokens[_currentContractAddress][nftTokenId], "Token ID already minted for this contract");
 
 		_privateMint(msg.sender);
+		_privateMint(msg.sender);
 
 		// Mark the token ID as minted for the specific contract
 		_mintedTokens[_currentContractAddress][nftTokenId] = true;
-		_mintedTokensCount[_currentContractAddress][msg.sender] += 1;
+		_mintedTokensCount[_currentContractAddress][msg.sender] += 2;
 	}
 
     function remainingSupply() external view returns(uint256){
